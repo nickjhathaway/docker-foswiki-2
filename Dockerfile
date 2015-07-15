@@ -22,13 +22,14 @@ RUN apt-get install -y libjson-perl
 RUN cd /var/www/html && wget https://sourceforge.net/projects/foswiki/files/latest/download -O foswiki_latest.tar.gz
 RUN tar -zxvf /var/www/html/foswiki_latest.tar.gz -C /var/www/html/
 RUN chown -R www-data:www-data /var/www/html/Foswiki*
-#RUN cd /var/www/html/Foswiki*/tools && perl -I ../lib rewriteshebang.pl $(echo y)
+RUN cd /var/www/html/Foswiki*/tools && echo -e "\ny\n" | perl -I ../lib rewriteshebang.pl
 
 # Add files.
 #ADD root/.bashrc /root/.bashrc
 #ADD root/.gitconfig /root/.gitconfig
 #ADD root/.scripts /root/.scripts
 RUN a2enmod rewrite
+RUN a2enmod cgi
 ADD  configFiles/foswiki.conf /etc/apache2/conf-available/foswiki.conf
 RUN ln -s /etc/apache2/conf-available/foswiki.conf /etc/apache2/conf-enabled/foswiki.conf
 RUN service apache2 restart 
