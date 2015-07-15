@@ -14,13 +14,14 @@ RUN \
   apt-get -y upgrade && \
   apt-get install -y build-essential && \
   apt-get install -y software-properties-common && \
-  apt-get install -y byobu curl git htop man unzip vim wget tree php5 && \
+  apt-get install -y byobu curl git htop man unzip vim wget tree php5 emacs && \
   rm -rf /var/lib/apt/lists/*
 RUN apt-get update
 RUN apt-get install -y apache2 
 RUN apt-get install -y libjson-perl
 RUN cd /var/www/html && wget https://sourceforge.net/projects/foswiki/files/latest/download -O foswiki_latest.tar.gz
 RUN tar -zxvf /var/www/html/foswiki_latest.tar.gz -C /var/www/html/
+RUN chown -R www-data:www-data /var/www/html/Foswiki*
 #RUN cd /var/www/html/Foswiki*/tools && perl -I ../lib rewriteshebang.pl $(echo y)
 
 # Add files.
@@ -40,4 +41,7 @@ WORKDIR /root
 
 # Define default command.
 CMD ["bash"]
+
+
+EXPOSE  80
 
