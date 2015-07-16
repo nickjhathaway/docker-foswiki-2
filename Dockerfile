@@ -1,38 +1,42 @@
-#
-# Ubuntu Dockerfile
-#
-# https://github.com/dockerfile/ubuntu
-#
+# Use phusion/baseimage as base image. To make your builds reproducible, make
+# sure you lock down to a specific version, not to `latest`!
+# See https://github.com/phusion/baseimage-docker/blob/master/Changelog.md for
+# a list of version numbers.
+FROM phusion/baseimage:0.9.16
 
-# Pull base image.
-FROM ubuntu:14.04
+# global env
+ENV HOME=/root TERM=xterm
 
-# Install.
+# Use baseimage-docker's init system.
+CMD ["/sbin/my_init"]
+
+# set proper timezone
+RUN echo America/New_York > /etc/timezone && sudo dpkg-reconfigure --frontend noninteractive tzdata
+
+# Install Essentials.
 RUN \
   sed -i 's/# \(.*multiverse$\)/\1/g' /etc/apt/sources.list && \
-  apt-get update && \
-  apt-get -y upgrade && \
-  apt-get install -y build-essential && \
-  apt-get install -y software-properties-common && \
-  apt-get install -y byobu curl git htop man unzip vim wget tree php5 emacs graphviz imagemagick ghostscript && \
-  rm -rf /var/lib/apt/lists/*
-RUN apt-get update
-RUN apt-get install -y apache2 
-RUN apt-get install -y libjson-perl
-RUN cd /var/www/html && wget https://sourceforge.net/projects/foswiki/files/latest/download -O foswiki_latest.tar.gz
-RUN tar -zxvf /var/www/html/foswiki_latest.tar.gz -C /var/www/html/
-RUN chown -R www-data:www-data /var/www/html/Foswiki*
-RUN cd /var/www/html/Foswiki*/tools && echo -e "\ny\n" | perl -I ../lib rewriteshebang.pl
+  DEBIAN_FRONTEND=noninteractive apt-get update && \
+  DEBIAN_FRONTEND=noninteractive apt-get -y upgrade && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential software-properties-common\
+                                 byobu curl git htop man unzip vim wget tree graphviz imagemagick ghostscript libmagickcore-dev perlmagick rcs
 
-# Add files.
-#ADD root/.bashrc /root/.bashrc
-#ADD root/.gitconfig /root/.gitconfig
-#ADD root/.scripts /root/.scripts
-RUN a2enmod rewrite
-RUN a2enmod cgi
-ADD  configFiles/foswiki.conf /etc/apache2/conf-available/foswiki.conf
-RUN ln -s /etc/apache2/conf-available/foswiki.conf /etc/apache2/conf-enabled/foswiki.conf
-RUN service apache2 restart 
+# install web server stuff (apache2, php5, etc.)
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y php5 php5-common php5-cli php5-fpm apache2 apache2-utils libapache2-mod-php5
+
+# download, install, and set up the foswiki 
+RUN cd /var/www/html && wget https://sourceforge.net/projects/foswiki/files/latest/download -O foswiki_latest.tar.gz && \
+        tar -zxvf /var/www/html/foswiki_latest.tar.gz -C /var/www/html/ && \
+        chown -R www-data:www-data /var/www/html/Foswiki* && \
+        cd /var/www/html/Foswiki*/tools && echo \\ny\\n | perl -I ../lib rewriteshebang.pl
+
+# Add files (foswiki apache config file, rc.locl, etc...)
+ADD /files/ /
+RUN /bin/chmod 755 /etc/rc.local
+RUN ln -s /etc/apache2/conf-available/foswiki.conf /etc/apache2/conf-enabled/foswiki.conf && \
+     a2enmod rewrite && ln -s /etc/apache2/mods-available/cgi.load /etc/apache2/mods-enabled/   && \
+     service apache2 restart 
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --install-suggests libfile-copy-recursive-perl libcgi-pm-perl libdigest-md5-perl libcgi-session-perl libcrypt-passwdmd5-perl libio-stringy-perl libhtml-parser-perl libwww-perl libarchive-tar-perl libjson-perl libnet-ldap-perl libdb-file-lock-perl
 
 # Set environment variables.
 ENV HOME /root
@@ -40,9 +44,5 @@ ENV HOME /root
 # Define working directory.
 WORKDIR /root
 
-# Define default command.
-CMD ["bash"]
 
-
-EXPOSE  80
 
